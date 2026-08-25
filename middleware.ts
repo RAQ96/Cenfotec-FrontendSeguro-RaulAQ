@@ -36,7 +36,8 @@ export function middleware(request: NextRequest) {
   }
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
-  response.headers.set('Content-Security-Policy', csp);
+  requestHeaders.set('x-nonce', nonce);
+  //response.headers.set('Content-Security-Policy', csp);
   return response;
 }
 

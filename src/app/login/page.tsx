@@ -26,10 +26,6 @@ export default function LoginPage() {
             <p className="error" role="alert">{estado.error}</p>
           )}
 
-          <button type='button'>Atrás</button>
-          <button type='button'>Continuar</button>
-          <button type='submit'>Enviar formulario</button>
-
           <button className="btn" type="submit" disabled={pendiente} style={{ width: '100%' }}>
             {pendiente ? 'Ingresando…' : 'Ingresar'}
           </button>

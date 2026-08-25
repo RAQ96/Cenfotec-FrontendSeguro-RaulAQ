@@ -15,7 +15,7 @@ test('credenciales inválidas muestran mensaje uniforme y no autentican', async 
   await page.getByLabel('Usuario').fill('ana.analista');
   await page.getByLabel('Contraseña').fill('incorrecta-xyz');
   await page.getByRole('button', { name: /ingresar/i }).click();
-  await expect(page.getByRole('alert')).toContainText(/incorrect/i);
+  await expect(page.getByRole('alert').filter({ hasText: /Usuario o contraseña/i })).toContainText(/incorrect/i);
   await expect(page).toHaveURL(/\/login/);
 });
 

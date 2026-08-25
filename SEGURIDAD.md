@@ -1,68 +1,52 @@
-## Que se guarda donde y por que
+# Seguridad de la sesion - Boveda
 
-### En el navegador
+Documento entregable de la Practica 1. Maximo una pagina. No describas el codigo:
+explica las decisiones. Si una respuesta te sale "porque asi venia", esa es
+justamente la que hay que pensar.
 
-- `boveda_access`: cookie `httpOnly`, `secure` en produccion, `sameSite=lax` y con
-	una vida de 15 minutos. Contiene un JWT firmado que se envia automaticamente
-	en cada request y permite autorizar la operacion actual.
-- `boveda_refresh`: cookie con las mismas protecciones, pero con una vida maxima
-	de 8 horas. Sirve unicamente para obtener un nuevo access token. No debe estar
-	disponible para JavaScript, por eso se usa `httpOnly`.
+## 1. Que se guarda, donde y por que
 
+| Dato | Donde vive | Por que ahi | Que pasaria si viviera en localStorage |
+|---|---|---|---|
+| Access token | | | |
+| Refresh token | | | |
+| Rol del usuario | | | |
+| Secreto de firma | | | |
 
-### En el servidor y SQLite
+## 2. Los atributos de la cookie
 
-- `usuarios`: identidad, rol, sucursal, cedula y `hashContrasena`. La contrasena
-	original nunca se guarda; el hash permite verificarla sin poder recuperarla.
-- `sesiones`: `id`, usuario asociado, fechas de creacion y ultimo acceso,
-	`revocadaEn` y `refreshActual`. Esta fila hace que la sesion sea revocable: un
-	JWT que aun no expiro tampoco sirve si la sesion fue revocada.
-- `refreshActual`: solo guarda el identificador (`refreshId` o `jti`) del refresh
-	vigente, no el JWT completo. Se compara contra el refresh presentado y se
-	reemplaza cada vez que hay una rotacion.
-- `solicitudes`: datos de negocio, como sucursal, cuenta destino, monto,
-	justificacion y estado. Se guarda en el servidor para aplicar autorizacion y
-	doble control en cada operacion.
-- `auditoria`: eventos append-only, actor, fecha y metadatos. Se usa para
-	trazabilidad y para dejar evidencia de un intento de reuso de refresh.
+Uno por fila. En "Que ataque cierra" no vale repetir el nombre del atributo.
 
-El secreto `SESSION_SECRET` no se guarda en la base ni en el navegador: debe
-existir como secreto de configuracion del servidor. Permite firmar y verificar
-los JWT.
+| Atributo | Valor en Boveda | Que ataque cierra |
+|---|---|---|
+| `httpOnly` | | |
+| `Secure` | | |
+| `SameSite` | | |
+| `maxAge` | | |
 
-## Que pasa si se filtra el refresh
+## 3. Sesion revocable
 
-Un refresh filtrado debe considerarse una credencial de sesion. Quien lo posea
-puede presentarlo al servidor mientras su firma y su expiracion sean validas.
-El `access` de vida corta limita la ventana de uso directo, pero no elimina el
-riesgo del refresh.
+Un JWT valido no se puede apagar antes de que expire. Boveda lo resuelve
+respaldando el token con un registro de sesion en base.
 
-### Con rotacion y deteccion de reuso
+- Que verifica `verificarSesion()` ademas de la firma:
+- Por que borrar la cookie en el logout NO alcanza:
+- Como lo demostraste (los pasos exactos):
 
-1. El atacante puede usar el refresh robado una primera vez si todavia es el
-	 vigente. El servidor emite un refresh nuevo y cambia `refreshActual`.
-2. El refresh robado queda invalidado inmediatamente. Si el atacante vuelve a
-	 presentarlo, su `refreshId` ya no coincide con `refreshActual`.
-3. Ese reuso se trata como indicio de robo: se rechaza la solicitud, se revoca
-	 la sesion completa y se registra `reuso_de_refresh` en la auditoria. Tambien
-	 deja de funcionar el refresh nuevo que pudiera tener el usuario legitimo,
-	 obligandolo a iniciar sesion otra vez.
+## 4. Rotacion y reuso  (seccion de la Tarea 1)
 
-La rotacion reduce el tiempo util del token robado y permite detectar que existe
-una copia. Hay una condicion de carrera posible si el mismo refresh se usa casi
-simultaneamente por el cliente legitimo y el atacante; por eso, en produccion,
-la actualizacion del refresh vigente debe ser atomica.
+El escenario: a alguien le roban el refresh token.
 
-### Sin rotacion
+- **Sin rotacion**, que puede hacer el atacante y por cuanto tiempo:
+- **Con rotacion**, que pasa la primera vez que uno de los dos lo usa:
+- Por que se revoca la sesion **entera** y no solo el token presentado:
+- Que quedo en la bitacora, con el motivo exacto:
 
-El mismo refresh seguiria siendo valido despues de cada uso. Un atacante podria
-renovar repetidamente la sesion y obtener nuevos access tokens durante toda la
-vida del refresh, hasta que expire la sesion o alguien la revoque manualmente.
-El servidor no tendria forma de distinguir el uso legitimo del uso del atacante,
-porque ambos presentarian exactamente el mismo token. No habria deteccion de
-reuso ni un evento confiable para disparar la revocacion automatica.
+## 5. Evidencia
 
-En resumen: la rotacion no hace que una filtracion sea inocua, porque el primer
-uso del token robado puede funcionar, pero convierte los usos posteriores en una
-señal detectable y permite cortar la sesion. Sin rotacion, la filtracion mantiene
-una credencial reutilizable hasta su expiracion o revocacion.
+```
+npm run test:p1  ->
+```
+
+Y la demostracion del robo simulado: que hiciste, que respondio la app, y que
+quedo en base. El estado en base es lo que prueba la defensa, no el mensaje.
